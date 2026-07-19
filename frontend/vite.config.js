@@ -1,15 +1,20 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import pkg from './package.json';
 
 export default defineConfig({
+  // Injeta a versão do package.json no código: __APP_VERSION__ vira "0.2.0" no build
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+  },
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg'],
       manifest: {
-        name: 'To Do List v2 (SemVer)',
+        name: `To Do List v${pkg.version}`,
         short_name: 'Todolist',
         description: 'Gerenciador de tarefas com categorias e tags',
         theme_color: '#4361ee',

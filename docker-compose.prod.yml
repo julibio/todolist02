@@ -46,10 +46,23 @@ services:
     image: ghcr.io/${GHCR_OWNER}/todolist02-frontend:${IMAGE_TAG:-latest}
     container_name: todolist02-frontend
     restart: unless-stopped
-    ports:
-      - "80:80" # nginx servindo o build estático e fazendo proxy de /api
+    # Sem "ports": quem fala com o mundo é o Caddy central do VPS (/opt/caddy),
+    # que alcança este container pela rede compartilhada "web".
+    networks:
+      - default
+      - web
     depends_on:
       - backend
 
 volumes:
   pgdata02:
+
+networks:
+  # Rede interna do projeto (antes criada implicitamente como "todolist02_default").
+  # Aqui declarada com nome explícito: é por ela que backend↔db↔frontend se falam.
+  default:
+    name: todolist02_internal
+  # Rede compartilhada do VPS: só o frontend entra; é onde o Caddy central o encontra.
+  # Criada uma única vez no servidor: docker network create web
+  web:
+    external: true

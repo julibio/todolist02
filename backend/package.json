@@ -1,6 +1,6 @@
 {
   "name": "todolist02-backend",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Backend da aplicação To Do List v2",
   "main": "src/server.js",
   "scripts": {

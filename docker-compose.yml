@@ -46,3 +46,9 @@ services:
 
 volumes:
   pgdata02:
+
+networks:
+  # Rede interna do ambiente de dev (sem isso o compose criaria a mesma coisa
+  # com o nome gerado "<pasta>_default"). Explícita = visível no código.
+  default:
+    name: todolist02_dev
