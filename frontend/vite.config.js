@@ -9,7 +9,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg'],
       manifest: {
-        name: 'To Do List v2',
+        name: 'To Do List v2 (SemVer)',
         short_name: 'Todolist',
         description: 'Gerenciador de tarefas com categorias e tags',
         theme_color: '#4361ee',

@@ -224,7 +224,7 @@ function App() {
   if (!token) {
     return (
       <div className="container">
-        <h1>To Do List v2</h1>
+        <h1>To Do List v2 (SemVer)</h1>
         <div className="auth-box">
           <div className="auth-tabs">
             <button
@@ -296,7 +296,7 @@ function App() {
   return (
     <div className="container">
       <div className="header">
-        <h1>To Do List v2</h1>
+        <h1>To Do List v2 (SemVer)</h1>
         <div className="header-actions">
           <button className="btn-settings" onClick={() => setShowSettings(!showSettings)}>
             {showSettings ? 'Tarefas' : 'Categorias & Tags'}

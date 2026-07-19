@@ -16,15 +16,37 @@ nunca reutilizar nem mover tag já publicada — errou, publica a próxima.
 
 ## Ritual de release (sempre igual)
 
+### Testes manuais (obrigatórios enquanto não há testes automatizados)
+
+**Antes da tag — no ambiente local** (`docker compose -f docker-compose.dev.yml up --build`):
+
+- [ ] Registro de usuário novo funciona
+- [ ] Login com credencial correta entra; com senha errada é recusado
+- [ ] Criar tarefa (com categoria e tag) aparece na lista
+- [ ] Concluir, editar e excluir tarefa funcionam
+- [ ] Filtros por categoria e por tag retornam o esperado
+- [ ] `docker compose restart` → dados continuam lá (persistência)
+- [ ] O que a versão MUDOU se comporta como descrito no changelog
+
+**Depois do deploy — smoke test em produção** (`http://147.15.78.254`, com Ctrl+Shift+R):
+
+- [ ] Página carrega e mostra a mudança da versão
+- [ ] Login com usuário existente funciona
+- [ ] Criar uma tarefa e recarregar a página — ela persiste
+
+> Falhou algo em produção? Rollback imediato (seção abaixo), investigar com calma depois.
+> Estes checklists serão substituídos por testes automatizados no ci.yml/deploy.yml (previsto para a próxima versão).
+
 ```bash
-# 1. código pronto e testado local (docker compose -f docker-compose.dev.yml up)
+# 1. código pronto e CHECKLIST LOCAL acima completo
 # 2. atualizar "version" nos package.json (backend e frontend) — cosmético, mas coerente
 git commit -am "feat: <o que mudou>"
 git push
-# 3. tag = versão
+# 3. tag = versão (push cirúrgico: só a tag nova)
 git tag vX.Y.Z
-git push origin main --tags        # dispara build + deploy
-# 4. release com changelog (vitrine e histórico)
+git push origin vX.Y.Z             # dispara build + deploy
+# 4. SMOKE TEST em produção (checklist acima) — falhou? rollback
+# 5. release com changelog (vitrine e histórico)
 gh release create vX.Y.Z --notes "- mudança 1
 - mudança 2"
 ```
