@@ -1,0 +1,89 @@
+# Deploy — dispara ao criar uma tag de versão (v1.0.0, v1.1.0, ...)
+# ou manualmente pela aba Actions (workflow_dispatch).
+#
+# Etapa 1 (build-push): constrói as imagens e publica no GHCR.
+#   Funciona desde já — não precisa de servidor nem de segredos extras.
+# Etapa 2 (deploy): conecta no servidor por SSH e atualiza os containers.
+#   Fica DESLIGADA até você criar a variável de repositório
+#   DEPLOY_ENABLED=true e cadastrar os segredos SSH (ver docs/CI-CD.md).
+name: Deploy
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build-push:
+    name: Build e publicação das imagens (GHCR)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # permite publicar no GHCR com o GITHUB_TOKEN
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login no GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build e push
+        run: |
+          # GHCR exige nome do dono em minúsculas
+          OWNER=${GITHUB_REPOSITORY_OWNER,,}
+          SHA=${GITHUB_SHA::7}
+
+          for SVC in backend frontend; do
+            IMG=ghcr.io/$OWNER/todolist02-$SVC
+            if [ "$SVC" = "frontend" ]; then
+              DOCKERFILE="-f frontend/Dockerfile.prod"
+            else
+              DOCKERFILE=""
+            fi
+            # Cada release gera 3 referências para a mesma imagem:
+            #   :latest  -> sempre a última versão
+            #   :<sha>   -> imutável, permite rollback exato
+            #   :<vX.Y.Z>-> quando o disparo veio de uma tag de versão
+            docker build $DOCKERFILE -t $IMG:latest -t $IMG:$SHA ./$SVC
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+              docker tag $IMG:latest $IMG:${GITHUB_REF_NAME}
+            fi
+            docker push --all-tags $IMG
+          done
+
+  deploy:
+    name: Deploy no servidor (via SSH)
+    needs: build-push
+    # Só roda depois que você criar a variável DEPLOY_ENABLED=true
+    # em Settings > Secrets and variables > Actions > Variables
+    if: vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copia arquivos de infra para o servidor
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "docker-compose.prod.yml,database/init.sql"
+          target: /opt/todolist02/
+
+      - name: Atualiza os containers
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cd /opt/todolist02
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d
+            docker image prune -f

@@ -1,0 +1,48 @@
+// ============================================
+// Todolist02 - Diagrama ER (DBML)
+// Abrir em: https://dbdiagram.io/d
+// Cole este conteudo no editor da esquerda
+// ============================================
+
+Table users {
+  id serial [pk, increment]
+  name varchar(100) [not null]
+  email varchar(255) [unique, not null]
+  password_hash varchar(255) [not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+}
+
+Table categories {
+  id serial [pk, increment]
+  name varchar(100) [not null]
+  color varchar(7) [default: '#4361ee']
+  user_id integer [not null, ref: > users.id]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+}
+
+Table tags {
+  id serial [pk, increment]
+  name varchar(50) [not null]
+  color varchar(7) [default: '#10b981']
+  user_id integer [not null, ref: > users.id]
+}
+
+Table tasks {
+  id serial [pk, increment]
+  title varchar(255) [not null]
+  description text
+  completed boolean [default: false]
+  user_id integer [not null, ref: > users.id]
+  category_id integer [ref: > categories.id]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+}
+
+Table task_tags {
+  task_id integer [not null, ref: > tasks.id]
+  tag_id integer [not null, ref: > tags.id]
+
+  indexes {
+    (task_id, tag_id) [pk]
+  }
+}

@@ -1,0 +1,16 @@
+# Node
+node_modules/
+dist/
+*.log
+
+# Segredos / ambiente (NUNCA commitar o .env real)
+.env
+
+# Android (mobile/)
+mobile/.gradle/
+mobile/.idea/
+mobile/.kotlin/
+mobile/local.properties
+mobile/build/
+mobile/app/build/
+*.apk

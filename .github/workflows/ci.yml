@@ -1,0 +1,110 @@
+# CI — roda em todo push na main e em todo Pull Request.
+# Objetivo: garantir que o código instala, compila e sobe antes de entrar na main.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  # ---------------------------------------------------------------
+  # Backend: sobe um Postgres real, carrega o schema e faz um teste
+  # de fumaça no endpoint /api/health (servidor + banco funcionando)
+  # ---------------------------------------------------------------
+  backend:
+    name: Backend (teste de fumaça)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: todouser
+          POSTGRES_PASSWORD: todopass123
+          POSTGRES_DB: todolist02
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U todouser -d todolist02"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instala dependências
+        run: npm ci
+
+      - name: Carrega o schema no Postgres
+        run: psql -h localhost -U todouser -d todolist02 -f ../database/init.sql
+        env:
+          PGPASSWORD: todopass123
+
+      - name: Sobe o servidor e testa /api/health
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: todouser
+          DB_PASSWORD: todopass123
+          DB_NAME: todolist02
+          JWT_SECRET: ci-secret
+        run: |
+          npm start &
+          for i in $(seq 1 20); do
+            if curl -fsS http://localhost:3002/api/health; then
+              echo "Backend OK"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Backend não respondeu em 20s"
+          exit 1
+
+  # ---------------------------------------------------------------
+  # Frontend: se o build do Vite passa, o código pelo menos compila
+  # ---------------------------------------------------------------
+  frontend:
+    name: Frontend (build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instala dependências
+        run: npm ci
+
+      - name: Build de produção
+        run: npm run build
+
+  # ---------------------------------------------------------------
+  # Docker: valida que as imagens de produção constroem sem erro
+  # (sem publicar nada — publicação é papel do deploy.yml)
+  # ---------------------------------------------------------------
+  docker:
+    name: Imagens Docker (validação)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build da imagem do backend
+        run: docker build ./backend
+
+      - name: Build da imagem do frontend (produção)
+        run: docker build -f frontend/Dockerfile.prod ./frontend

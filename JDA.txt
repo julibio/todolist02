@@ -1,0 +1,19 @@
+O Docker agora roda no WSL2 (Docker Engine no Ubuntu) — não há mais Docker Desktop / comando docker no Windows.
+Rode os comandos do PowerShell com o prefixo wsl --cd:
+
+wsl --cd c:\Projetos\00-claudecode-todolist02+CI-CD\ docker compose up -d --build
+
+Frontend: http://localhost:5174
+Backend (API): http://localhost:3002
+Postgres: localhost:5433 (user todouser, senha todopass123, banco todolist02)
+
+O database/init.sql roda automaticamente na primeira subida com volume vazio, criando o banco do zero.
+ATENÇÃO: o volume pgdata02 do Docker Desktop não migrou para o WSL — na primeira subida o banco será recriado do zero pelo init.sql (dados antigos perdidos, a menos que tenham sido exportados antes).
+
+Comandos úteis:
+wsl --cd C:\Projetos\00-claudecode-todolist02 docker compose logs -f    # acompanhar logs de tudo
+wsl --cd C:\Projetos\00-claudecode-todolist02 docker compose ps         # ver status dos containers
+wsl --cd C:\Projetos\00-claudecode-todolist02 docker compose down       # derrubar (mantém os dados do banco)
+wsl --cd C:\Projetos\00-claudecode-todolist02 docker compose down -v    # derrubar E apagar o banco (volume)
+
+Alternativa: entrar no WSL com `wsl`, depois `cd /mnt/c/Projetos/00-claudecode-todolist02` e usar `docker compose ...` normalmente.

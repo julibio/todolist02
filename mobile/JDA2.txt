@@ -1,0 +1,30 @@
+O APK está pronto. Não há celular conectado via USB e não encontrei regra de firewall específica para a porta 3002 — incluí as instruções para os dois caminhos abaixo.
+
+Resumo
+Criei um app Android nativo (Kotlin + Jetpack Compose) em C:\Projetos\00-claudecode-todolist02\mobile\ e compilei o APK com sucesso:
+
+APK: C:\Projetos\00-claudecode-todolist02\mobile\app\build\outputs\apk\debug\app-debug.apk (10,9 MB)
+
+O app tem tudo que a versão web tem: login/cadastro com JWT (sessão fica salva no aparelho), criar/editar/concluir/excluir tarefas, categorias e tags com cores, e filtros por categoria/tag. Ele já vem pré-configurado para acessar o backend em http://192.168.15.15:3002 (o IP do seu computador no Wi-Fi) — e dá para mudar a URL tocando em "Servidor: ..." na tela de login, caso o IP mude.
+
+Como instalar no celular
+Opção A — sem cabo: copie o app-debug.apk para o celular (Google Drive, WhatsApp, e-mail) e abra o arquivo. O Android vai pedir permissão para instalar de fontes desconhecidas — permita.
+
+Opção B — via USB: ative a "Depuração USB" no celular (Opções do desenvolvedor), conecte o cabo e rode:
+
+adb install C:\Projetos\00-claudecode-todolist02\mobile\app\build\outputs\apk\debug\app-debug.apk
+Antes de usar
+Backend rodando: wsl --cd C:\Projetos\00-claudecode-todolist02 docker compose up -d (Docker agora roda no WSL2)
+Celular no mesmo Wi-Fi que o computador.
+Firewall: não existe regra liberando a porta 3002. Se o app não conectar, rode este comando como administrador:
+New-NetFirewallRule -DisplayName "Todolist02 backend" -Direction Inbound -LocalPort 3002 -Protocol TCP -Action Allow
+Detalhe técnico que documentei no README.md: o projeto usa o AGP 9.2.1 com Kotlin embutido (mesma configuração do seu Android Studio atual), então é só abrir a pasta mobile/ no Android Studio se quiser evoluir o app por lá. Para recompilar via terminal: .\gradlew.bat :app:assembleDebug dentro de mobile\.
+
+Isso já foi concluído no turno anterior — o wakeup agendado disparou depois que a notificação do build chegou primeiro. Recapitulando o estado final:
+
+Build: sucesso (gradle assembleDebug, exit 0).
+APK confirmado: C:\Projetos\00-claudecode-todolist02\mobile\app\build\outputs\apk\debug\app-debug.apk (10,9 MB).
+adb: nenhum dispositivo conectado, então a instalação fica por sua conta — ou copiando o APK para o celular (Drive/WhatsApp/e-mail) e abrindo o arquivo, ou conectando via USB com depuração ativada e rodando adb install <caminho do apk>.
+Lembretes antes de usar o app: backend rodando (wsl --cd C:\Projetos\00-claudecode-todolist02 docker compose up -d — Docker agora no WSL2), celular no mesmo Wi-Fi, e, se não conectar, liberar a porta 3002 no firewall como administrador:
+
+New-NetFirewallRule -DisplayName "Todolist02 backend" -Direction Inbound -LocalPort 3002 -Protocol TCP -Action Allow

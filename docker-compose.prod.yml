@@ -1,0 +1,55 @@
+# Compose de PRODUÇÃO — roda no servidor com imagens prontas do GHCR.
+# Requer um arquivo .env ao lado (modelo em .env.example).
+# Subir/atualizar:  docker compose -f docker-compose.prod.yml up -d
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: todolist02-db
+    restart: unless-stopped
+    # Sem "ports": em produção o banco só é acessível pela rede interna do compose
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - pgdata02:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    image: ghcr.io/${GHCR_OWNER}/todolist02-backend:${IMAGE_TAG:-latest}
+    container_name: todolist02-backend
+    restart: unless-stopped
+    ports:
+      - "3002:3002" # exposto para o app Android acessar direto
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3002/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    image: ghcr.io/${GHCR_OWNER}/todolist02-frontend:${IMAGE_TAG:-latest}
+    container_name: todolist02-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80" # nginx servindo o build estático e fazendo proxy de /api
+    depends_on:
+      - backend
+
+volumes:
+  pgdata02:
